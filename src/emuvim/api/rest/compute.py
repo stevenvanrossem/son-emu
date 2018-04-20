@@ -208,6 +208,7 @@ class ComputeResources(Resource):
         if params is None:
             params = {}
         logging.debug("REST CALL: update container resources {0}".format(params))
+        print("REST CALL: update container resources {0}: {1}".format(dc_label, compute_name))
         #check if container exists
         d = dcs.get(dc_label).net.getNodeByName(compute_name)
 

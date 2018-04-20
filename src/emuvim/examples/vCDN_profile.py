@@ -26,9 +26,9 @@ acknowledge the contributions of their colleagues of the SONATA
 partner consortium (www.sonata-nfv.eu).
 """
 """
-A simple topology with two PoPs for the y1 demo story board.
+One datacenter switch where VNFs are added for profiling tests.
 
-        (dc1) <<-->> s1 <<-->> (dc2)
+        (dc1) <<-->> VNF1,2,..
 
 - SAP deployment enabled
 - learning switch enabled
@@ -40,10 +40,10 @@ from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
 from emuvim.api.sonata import SonataDummyGatekeeperEndpoint
 from mininet.node import RemoteController
-import os
 
 logging.basicConfig(level=logging.INFO)
 
+# sudo python src/emuvim/examples/vCDN_profile.py
 
 def create_topology1():
     # create topology
@@ -58,28 +58,43 @@ def create_topology1():
     # run API endpoint server (in another thread, don't block)
     rapi1.start()
 
-
-    # specify a vnfd file to be deployed as internal SAP:
-    sap_vnfd = 'custom_sap_vnfd.yml'
-    dir_path = os.path.dirname(__file__)
-    sap_vnfd_path = os.path.join(dir_path, sap_vnfd)
-    sap_vnfd_path = None
     # add the SONATA dummy gatekeeper to each DC
-    sdkg1 = SonataDummyGatekeeperEndpoint("0.0.0.0", 5000, deploy_sap=True, auto_deploy=True,
-                                          docker_management=True, auto_delete=True,
-                                          sap_vnfd_path=sap_vnfd_path)
-    sdkg1.connectDatacenter(dc1)
+    #sdkg1 = SonataDummyGatekeeperEndpoint("0.0.0.0", 5000, deploy_sap=True)
+    #sdkg1.connectDatacenter(dc1)
     # run the dummy gatekeeper (in another thread, don't block)
-    sdkg1.start()
+    #sdkg1.start()
 
     # start the emulation platform
-    net.start()
+    net.start()  # here the docker host default ip is configured
+
+    # topology must be started before hosts are added
+    #cache = net.addDocker('cache', dimage="squid-vnf")
+    cache = dc1.startCompute('cache', image="squid-vnf", network=[{"ip": "10.10.0.1/24", "id": "client"}, {"ip": "10.20.0.1/24", "id": "server"}])
+
+    #client = net.addDocker('client', ip='10.10.0.1/24', dimage="vcdn-client")
+    client = dc1.startCompute('client', image='vcdn-client', network=[{"ip": "10.10.0.2/24", "id": "client"}])
+
+    #server = net.addDocker('server', ip='10.20.0.1/24', dimage="webserver")
+    server = dc1.startCompute('server', image='webserver', network=[{"ip": "10.20.0.2/24", "id": "server"}])
+    #net.addLink(dc1, client,  intfName1='dc-cl', intfName2='client')
+    #net.addLink(dc1, server,  intfName1='dc-sv', intfName2='server')
+    #net.addLink(dc1, cache,  intfName1='dc-ccl', intfName2='client', params1={'ip': '10.10.0.2/24'})
+    #net.addLink(dc1, cache,  intfName1='dc-csv', intfName2='server',params1={'ip': '10.20.0.2/24'})
+
+    # initialise VNFs
+    cache.cmd("./start.sh", detach=True)
+    client.cmd("./start.sh", detach=True)
+    server.cmd('./start.sh', detach=True)
+
+# startup script hangs if we use other startup command
+# command="./start.sh"
+
     net.CLI()
     net.stop()
 
 
 def main():
-    setLogLevel('info')  # set Mininet loglevel
+    setLogLevel('debug')  # set Mininet loglevel
     create_topology1()
 
 

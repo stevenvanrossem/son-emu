@@ -198,7 +198,6 @@ class DCNetwork(Containernet):
                 node2_port_id = params["params2"]["id"]
         node2_port_name = link.intf2.name
 
-
         # add edge and assigned port number to graph in both directions between node1 and node2
         # port_id: id given in descriptor (if available, otherwise same as port)
         # port: portnumber assigned by Containernet
