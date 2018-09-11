@@ -85,6 +85,8 @@ class DCNetwork(Containernet):
         self.deployed_elans = []
         self.vlan_dict = {}
 
+        # flag to indicate if the topology has been stopped (e.g. by api call)
+        self.exit = False
 
         # always cleanup environment before we start the emulator
         self.killRyu()
@@ -177,7 +179,7 @@ class DCNetwork(Containernet):
                 params["params2"] = {}
             if "ip" not in params["params2"]:
                 params["params2"]["ip"] = self.getNextIp()
-        # ensure that we allow TCLinks between data centers
+        # ensure that we allow TCLinks between data centerscached_reqs_count
         # TODO this is not optimal, we use cls=Link for containers and TCLink for data centers
         # see Containernet issue: https://github.com/mpeuster/containernet/issues/3
         if "cls" not in params:
@@ -331,6 +333,8 @@ class DCNetwork(Containernet):
         # stop Ryu controller
         self.killRyu()
 
+        # flag to indicate the topology has been stopped
+        self.exit = True
 
     def CLI(self):
         CLI(self)

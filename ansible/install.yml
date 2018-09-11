@@ -84,7 +84,7 @@
      pip: name=urllib3 version=1.21.1
 
    - name: install iptc
-     pip: name=python-iptables state=latest
+     pip: name=python-iptables version=0.11.0
 
    - name: install ipaddress
      pip: name=ipaddress state=latest

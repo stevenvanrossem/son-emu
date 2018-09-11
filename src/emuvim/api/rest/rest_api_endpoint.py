@@ -34,7 +34,7 @@ from gevent.wsgi import WSGIServer
 
 # need to import total module to set its global variable dcs
 import compute
-from compute import dcs, ComputeList, Compute, ComputeResources, DatacenterList, DatacenterStatus
+from compute import dcs, ComputeList, Compute, ComputeResources, DatacenterList, DatacenterStatus, Exit
 
 # need to import total module to set its global variable net
 import network
@@ -83,6 +83,7 @@ class RestApiEndpoint(object):
 
         self.api.add_resource(DatacenterStatus, "/restapi/datacenter/<dc_label>")
         self.api.add_resource(DatacenterList, "/restapi/datacenter")
+        self.api.add_resource(Exit, "/restapi/exit")
 
 
         # network related actions (setup chaining between VNFs)

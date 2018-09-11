@@ -68,14 +68,18 @@ def create_topology1():
     net.start()  # here the docker host default ip is configured
 
     # topology must be started before hosts are added
-    #cache = net.addDocker('cache', dimage="squid-vnf")
-    cache = dc1.startCompute('cache', image="squid-vnf", network=[{"ip": "10.10.0.1/24", "id": "client"}, {"ip": "10.20.0.1/24", "id": "server"}])
+    cache = dc1.startCompute('cache', image="squid-vnf", network=[{"ip": "10.10.0.1/24", "id": "client", 'mac': "aa:aa:aa:00:00:01"},
+                                                                  {"ip": "10.20.0.1/24", "id": "server", "mac": "aa:aa:aa:00:00:02"}])
 
-    #client = net.addDocker('client', ip='10.10.0.1/24', dimage="vcdn-client")
     client = dc1.startCompute('client', image='vcdn-client', network=[{"ip": "10.10.0.2/24", "id": "client"}])
 
-    #server = net.addDocker('server', ip='10.20.0.1/24', dimage="webserver")
     server = dc1.startCompute('server', image='webserver', network=[{"ip": "10.20.0.2/24", "id": "server"}])
+
+
+    
+    #client = net.addDocker('client', ip='10.10.0.1/24', dimage="vcdn-client") 
+    #cache = net.addDocker('cache', dimage="squid-vnf")
+    #server = net.addDocker('server', ip='10.20.0.1/24', dimage="webserver")
     #net.addLink(dc1, client,  intfName1='dc-cl', intfName2='client')
     #net.addLink(dc1, server,  intfName1='dc-sv', intfName2='server')
     #net.addLink(dc1, cache,  intfName1='dc-ccl', intfName2='client', params1={'ip': '10.10.0.2/24'})
@@ -91,6 +95,9 @@ def create_topology1():
 
     net.CLI()
     net.stop()
+    while not net.exit:
+        pass
+
 
 
 def main():

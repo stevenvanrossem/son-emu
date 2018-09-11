@@ -26,7 +26,7 @@ acknowledge the contributions of their colleagues of the SONATA
 partner consortium (www.sonata-nfv.eu).
 """
 from mininet.node import Docker, OVSBridge
-from mininet.link import Link
+from mininet.link import Link, TCLink
 from emuvim.dcemulator.resourcemodel import NotEnoughResourcesAvailable
 import threading
 import logging
@@ -279,8 +279,14 @@ class Datacenter(object):
             # clean up network configuration (e.g. RTNETLINK does not allow ':' in intf names
             if nw.get("id") is not None:
                 nw["id"] = self._clean_ifname(nw["id"])
+            # optional extra options for the interface definition
+            options = {}
+            # if mac adress is given, use this one, otherwise leave out addr1 parameter
+            if nw.get('mac') is not None:
+                options['addr1'] = nw.get('mac')
+                nw.pop('mac')
             # TODO we cannot use TCLink here (see: https://github.com/mpeuster/containernet/issues/3)
-            self.net.addLink(d, self.switch, params1=nw, cls=Link, intfName1=nw.get('id'))
+            self.net.addLink(d, self.switch, params1=nw, cls=Link, intfName1=nw.get('id'), **options)
         # do bookkeeping
         self.containers[name] = d
 

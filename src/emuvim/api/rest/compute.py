@@ -32,7 +32,8 @@ import json
 import threading
 from copy import deepcopy
 
-logging.basicConfig()
+LOG = logging.getLogger("dcemulator.compute")
+LOG.setLevel(logging.DEBUG)
 
 CORS_HEADER = {'Access-Control-Allow-Origin': '*'}
 
@@ -70,12 +71,12 @@ class Compute(Resource):
         command = data.get("docker_command")
 
         try:
-            logging.debug("API CALL: compute start")
+            LOG.debug("API CALL: compute start")
             if compute_name is None or compute_name == "None":
-                logging.error("No compute name defined in request.")
+                LOG.error("No compute name defined in request.")
                 return "No compute name defined in request.", 500, CORS_HEADER
             if dc_label is None or dcs.get(dc_label) is None:
-                logging.error("No datacenter defined in request.")
+                LOG.error("No datacenter defined in request.")
                 return "No datacenter defined in request.", 500, CORS_HEADER
             c = dcs.get(dc_label).startCompute(
                 compute_name, image=image, command=command, network=nw_list)
@@ -85,38 +86,35 @@ class Compute(Resource):
                 env = config.get("Env", list())
                 for env_var in env:
                     var, cmd = map(str.strip, map(str, env_var.split('=', 1)))
-                    logging.debug("%r = %r" % (var , cmd))
+                    LOG.info("%r = %r" % (var , cmd))
                     if var=="SON_EMU_CMD" or var=="VIM_EMU_CMD":
-                        logging.info("Executing entry point script in %r: %r" % (c.name, cmd))
-                        # execute command in new thread to ensure that API is not blocked by VNF
-                        t = threading.Thread(target=c.cmdPrint, args=(cmd,))
-                        t.daemon = True
-                        t.start()
+                        LOG.info("Executing entry point script in %r: %r" % (c.name, cmd))
+                        c.cmd(cmd, detach=True)
             except Exception as ex:
-                logging.warning("Couldn't run Docker entry point VIM_EMU_CMD")
-                logging.exception("Exception:")
+                LOG.warning("Couldn't run Docker entry point VIM_EMU_CMD")
+                LOG.exception("Exception:")
             # return docker inspect dict
             return c.getStatus(), 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
 
     def get(self, dc_label, compute_name):
 
-        logging.debug("API CALL: compute status")
+        LOG.debug("API CALL: compute status")
 
         try:
             return dcs.get(dc_label).containers.get(compute_name).getStatus(), 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
 
     def delete(self, dc_label, compute_name):
-        logging.debug("API CALL: compute stop")
+        LOG.debug("API CALL: compute stop")
         try:
             return dcs.get(dc_label).stopCompute(compute_name), 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
 
     def _parse_network(self, network_str):
@@ -143,7 +141,7 @@ class ComputeList(Resource):
     global dcs
 
     def get(self, dc_label=None):
-        logging.debug("API CALL: compute list")
+        LOG.debug("API CALL: compute list")
         try:
             if dc_label is None or dc_label == 'None':
                 # return list with all compute nodes in all DCs
@@ -164,7 +162,7 @@ class ComputeList(Resource):
                 total_list = container_list + extSAP_list
                 return total_list, 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
 
 class ComputeResources(Resource):
@@ -191,13 +189,13 @@ class ComputeResources(Resource):
     global dcs
 
     def put(self, dc_label, compute_name):
-        logging.debug("REST CALL: update container resources")
+        LOG.debug("REST CALL: update container resources")
 
         try:
             c = self._update_resources(dc_label, compute_name)
             return c.getStatus(), 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
 
     def _update_resources(self, dc_label, compute_name):
@@ -207,7 +205,7 @@ class ComputeResources(Resource):
         # then no data
         if params is None:
             params = {}
-        logging.debug("REST CALL: update container resources {0}".format(params))
+        LOG.debug("REST CALL: update container resources {0}".format(params))
         print("REST CALL: update container resources {0}: {1}".format(dc_label, compute_name))
         #check if container exists
         d = dcs.get(dc_label).net.getNodeByName(compute_name)
@@ -241,11 +239,11 @@ class DatacenterList(Resource):
     global dcs
 
     def get(self):
-        logging.debug("API CALL: datacenter list")
+        LOG.debug("API CALL: datacenter list")
         try:
             return [d.getStatus() for d in dcs.itervalues()], 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
 
 
@@ -253,9 +251,22 @@ class DatacenterStatus(Resource):
     global dcs
 
     def get(self, dc_label):
-        logging.debug("API CALL: datacenter status")
+        LOG.debug("API CALL: datacenter status")
         try:
             return dcs.get(dc_label).getStatus(), 200, CORS_HEADER
         except Exception as ex:
-            logging.exception("API error.")
+            LOG.exception("API error.")
             return ex.message, 500, CORS_HEADER
+
+
+class Exit(Resource):
+    global dcs
+
+    def get(self):
+        LOG.debug("API CALL: exit containernet")
+        """
+        Stop the running Containernet instance regardless of data transmitted
+        """
+        list(dcs.values())[0].net.stop()
+        msg = "Exit containernet ..."
+        return msg, 200, CORS_HEADER
