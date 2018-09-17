@@ -497,17 +497,21 @@ class DCNetworkMonitor():
                "run",
                "--rm",
                "--volume=/:/rootfs:ro",
-               "--volume=/var/run:/var/run:rw",
+               "--volume=/var/run:/var/run:ro",
                "--volume=/sys:/sys:ro",
                "--volume=/var/lib/docker/:/var/lib/docker:ro",
+               "--volume=/dev/disk/:/dev/disk:ro",
+               "--net=host",
                "--publish={0}:8080".format(port),
                "--name=cadvisor",
                "--label",'com.containernet=""',
                "--detach=true",
                "google/cadvisor:latest",
+               "--enable_load_reader=true",
                #"--storage_duration=1m0s",
-               #"--allow_dynamic_housekeeping=true",
+               "--allow_dynamic_housekeeping=false",
                #"--housekeeping_interval=1s",
+               "--disable_metrics=udp",
                ]
         logging.info('Start cAdvisor container {0}'.format(cmd))
         return Popen(cmd)
